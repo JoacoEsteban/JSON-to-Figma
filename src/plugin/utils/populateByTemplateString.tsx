@@ -3,7 +3,6 @@ import {skipSign} from '../data/skipSign';
 const log = console.log;
 export default function populateByTemplateString(selectedLayers, JSONobj, btnName) {
     const token = `{${btnName}}`;
-    let newItem = 0;
     const loopSelected = async arr => {
         for (const item of arr) {
             log('Replacing', token, 'on item', item);
@@ -23,7 +22,7 @@ export default function populateByTemplateString(selectedLayers, JSONobj, btnNam
                         console.error('@ catch block 1', error);
                     }
 
-                    const newToken = JSONobj[newItem][btnName].toString();
+                    const newToken = JSONobj[btnName].toString();
                     try {
                         item.insertCharacters(tokenPosition + token.length, newToken, 'BEFORE');
                     } catch (error) {
@@ -35,7 +34,6 @@ export default function populateByTemplateString(selectedLayers, JSONobj, btnNam
                     } catch (error) {
                         console.error('@ deletechars', error);
                     }
-                    // newItem = ++newItem;
                 }
                 if (item.children) {
                     try {

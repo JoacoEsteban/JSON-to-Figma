@@ -21,9 +21,11 @@ figma.ui.onmessage = msg => {
     // CONDITIONAL VARIABLES FOR CHECKING
     //
     // Check if random button is on
-    const isRandomJSON = msg => {
-        return msg.selected.random ? shuffleArray(msg.obj) : msg.obj;
+    const defineJSON = msg => {
+        return msg.selected?.random ? shuffleArray(msg.obj) : msg.obj;
     };
+    const definedMsg = defineJSON(msg);
+    const getJSON = () => definedMsg;
 
     // Check if something selected
     const isSelectionLength = figma.currentPage.selection.length !== 0;
@@ -49,12 +51,12 @@ figma.ui.onmessage = msg => {
     if (isOptionTypeMatch(0)) {
         if (isSelectionLength) {
             if (isAllMatchesClicked()) {
-                const buttonsArray = Object.keys(isRandomJSON(msg)[0]);
+                const buttonsArray = Object.keys(getJSON()[0]);
                 buttonsArray.map(btnName => {
-                    populateByName(figma.currentPage.selection, isRandomJSON(msg), btnName);
+                    populateByName(figma.currentPage.selection, getJSON(), btnName);
                 });
             } else {
-                populateByName(figma.currentPage.selection, isRandomJSON(msg), msg.selected.btnName);
+                populateByName(figma.currentPage.selection, getJSON(), msg.selected.btnName);
             }
         } else if (!isSelectionLength && !isAllMatchesClicked()) {
             figmaNotify('error', `Select frames/groups with layers called "${msg.selected.btnName}"`, 3000);
@@ -66,7 +68,7 @@ figma.ui.onmessage = msg => {
     // Selected layers only
     if (isOptionTypeMatch(1)) {
         if (isSelectionLength) {
-            populateOnlySelected(figma.currentPage.selection, isRandomJSON(msg), msg.selected.btnName);
+            populateOnlySelected(figma.currentPage.selection, getJSON(), msg.selected.btnName);
         } else {
             figmaNotify('error', 'Select text layers', 3000);
         }
@@ -90,16 +92,41 @@ figma.ui.onmessage = msg => {
 
     // String templates
     if (isOptionTypeMatch(2)) {
+        let instances = [];
         if (isSelectionLength) {
-            if (isAllMatchesClicked()) {
-                const buttonsArray = Object.keys(isRandomJSON(msg)[0]);
+            const element = figma.currentPage.selection[0];
+            const __JSON = getJSON();
+            const buttonsArray = Object.keys(__JSON[0]);
 
-                buttonsArray.map(btnName => {
-                    populateByTemplateString(figma.currentPage.selection, isRandomJSON(msg), btnName);
+            console.log('aber', element, element.type);
+            if (element.type === 'COMPONENT') {
+                const spacing = element.height * 1.05;
+
+                console.log('cloning');
+                const relativeTransform = JSON.parse(JSON.stringify(element.relativeTransform));
+                __JSON.forEach((_obj, i) => {
+                    const instance = element.createInstance();
+
+                    instance.x = element.x;
+                    instance.y = element.y;
+                    instance.relativeTransform = relativeTransform;
+                    instance.y += spacing * (i + 1);
+
+                    instances.push(instance);
                 });
-            } else {
-                populateByTemplateString(figma.currentPage.selection, isRandomJSON(msg), msg.selected.btnName);
-            }
+            } else instances.push(element);
+
+            instances.forEach((element, i) => {
+                return;
+                const _JSON = __JSON[i];
+                if (isAllMatchesClicked()) {
+                    buttonsArray.forEach(btnName => {
+                        populateByTemplateString(element, _JSON, btnName);
+                    });
+                } else {
+                    populateByTemplateString(element, _JSON, msg.selected.btnName);
+                }
+            });
         } else if (!isSelectionLength && !isAllMatchesClicked()) {
             figmaNotify('error', `Select frames/groups with string templates "${msg.selected.btnName}"`, 3000);
         } else if (!isSelectionLength && isAllMatchesClicked()) {
