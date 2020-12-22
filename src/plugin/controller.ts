@@ -15,7 +15,7 @@ import {skipSign} from './data/skipSign';
 // Show UI
 figma.showUI(__html__, {width: pluginFrameSize.width, height: pluginFrameSize.height});
 
-figma.ui.onmessage = msg => {
+figma.ui.onmessage = async msg => {
     // console.log(msg);
     //
     // CONDITIONAL VARIABLES FOR CHECKING
@@ -101,8 +101,6 @@ figma.ui.onmessage = msg => {
             console.log('aber', element, element.type);
             if (element.type === 'COMPONENT') {
                 const spacing = element.height * 1.05;
-
-                console.log('cloning');
                 const relativeTransform = JSON.parse(JSON.stringify(element.relativeTransform));
                 __JSON.forEach((_obj, i) => {
                     const instance = element.createInstance();
@@ -116,17 +114,23 @@ figma.ui.onmessage = msg => {
                 });
             } else instances.push(element);
 
-            instances.forEach((element, i) => {
-                return;
-                const _JSON = __JSON[i];
-                if (isAllMatchesClicked()) {
-                    buttonsArray.forEach(btnName => {
-                        populateByTemplateString(element, _JSON, btnName);
-                    });
-                } else {
-                    populateByTemplateString(element, _JSON, msg.selected.btnName);
+            try {
+                for (let i = 0; i < __JSON.length; i++) {
+                    const instance = [instances[i]];
+                    const _JSON = __JSON[i];
+                    if (isAllMatchesClicked()) {
+                        for (const btnName of buttonsArray) {
+                            await populateByTemplateString(instance, _JSON, btnName);
+                        }
+                    } else {
+                        await populateByTemplateString(instance, _JSON, msg.selected.btnName);
+                    }
                 }
-            });
+            } catch (error) {
+                console.error('ERROR ITERATING INSTANCE LOOP', error);
+                figmaNotify('error', `There was an unexpected error: ${error?.message || error}`, 3000);
+            }
+            figmaNotify('success', `All instances have been created`, 3000);
         } else if (!isSelectionLength && !isAllMatchesClicked()) {
             figmaNotify('error', `Select frames/groups with string templates "${msg.selected.btnName}"`, 3000);
         } else if (!isSelectionLength && isAllMatchesClicked()) {

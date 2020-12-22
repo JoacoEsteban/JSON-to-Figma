@@ -1,11 +1,9 @@
 import {skipSign} from '../data/skipSign';
 
-const log = console.log;
-export default function populateByTemplateString(selectedLayers, JSONobj, btnName) {
+export default async function populateByTemplateString(selectedLayers, JSONobj, btnName) {
     const token = `{${btnName}}`;
     const loopSelected = async arr => {
         for (const item of arr) {
-            log('Replacing', token, 'on item', item);
             if (!item.name.includes(skipSign.symbol)) {
                 const tokenPosition = item.characters?.indexOf(token);
 
@@ -46,5 +44,5 @@ export default function populateByTemplateString(selectedLayers, JSONobj, btnNam
         }
     };
 
-    loopSelected(selectedLayers);
+    await loopSelected(selectedLayers);
 }
