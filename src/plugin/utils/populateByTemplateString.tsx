@@ -1,23 +1,51 @@
 import {skipSign} from '../data/skipSign';
 
+const log = console.log;
 export default function populateByTemplateString(selectedLayers, JSONobj, btnName) {
+    const token = `{${btnName}}`;
     let newItem = 0;
-
-    const loopSelected = arr => {
-        arr.map(item => {
+    const loopSelected = async arr => {
+        for (const item of arr) {
+            log('Replacing', token, 'on item', item);
             if (!item.name.includes(skipSign.symbol)) {
-                if (item.type === 'TEXT' && item.characters.includes(`{${btnName}}`)) {
-                    figma.loadFontAsync(item.fontName).then(() => {
-                        item.characters = item.characters.replace(`{${btnName}}`, JSONobj[newItem][btnName].toString());
-                        newItem = ++newItem;
-                    });
+                const tokenPosition = item.characters?.indexOf(token);
+
+                if (item.type === 'TEXT' && tokenPosition !== -1) {
+                    try {
+                        if (item.fontName?.description === 'figma.mixed') {
+                            const len = item.characters.length;
+                            for (let i = 0; i < len; i++) {
+                                const fontName = item.getRangeFontName(i, i + 1);
+                                await figma.loadFontAsync(fontName);
+                            }
+                        } else await figma.loadFontAsync(item.fontName);
+                    } catch (error) {
+                        console.error('@ catch block 1', error);
+                    }
+
+                    const newToken = JSONobj[newItem][btnName].toString();
+                    try {
+                        item.insertCharacters(tokenPosition + token.length, newToken, 'BEFORE');
+                    } catch (error) {
+                        console.error('@ insertchars', error);
+                    }
+
+                    try {
+                        item.deleteCharacters(tokenPosition, tokenPosition + token.length);
+                    } catch (error) {
+                        console.error('@ deletechars', error);
+                    }
+                    // newItem = ++newItem;
                 }
                 if (item.children) {
-                    loopSelected(item.children);
+                    try {
+                        await loopSelected(item.children);
+                    } catch (error) {
+                        console.error('@ catch block 2', error);
+                    }
                 }
-                return;
             }
-        });
+        }
     };
 
     loopSelected(selectedLayers);
